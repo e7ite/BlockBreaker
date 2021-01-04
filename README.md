@@ -9,6 +9,10 @@ Technologies used:
       Nginx: HTTP server used to allow players to connect.
       HTML5 Canvas: Renders the game to the web page.
 
+## Play the game here!
+http://35.208.235.50/
+Hosted on Google Cloud Platform
+
 ## Preview
 ![Preview](/preview.gif)
 

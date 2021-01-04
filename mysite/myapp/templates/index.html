@@ -1,0 +1,317 @@
+{% load static %}
+<!doctype html>
+<html class="no-js" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ displayMsg }}</title>
+    <style type="text/css">
+        canvas {
+           border : 1px solid;
+           margin : 0 auto;
+           width : 800px;
+           display : block;
+           margin-top : 50px;
+           background-color : #FFFCF6;
+        }
+      </style>
+    {% block css %}{% endblock %}
+  </head>
+<body>
+    <canvas id="gameCanvas" height="600px" width="600px"></canvas>
+    <script type="text/javascript">
+
+        // The scores from Django
+        var scores;
+        // The score submit form DOM element
+        var scoreForm;
+        // The current game state (0 = main menu, 1 = game, 2 = end screen)
+        var gameState = 0;
+        // Player name submitted to Django
+        var playerName = "";
+
+        function waitForEmbind(){
+            if(typeof paddle === "undefined" || typeof ball === "undefined") {
+                setTimeout(waitForEmbind, 1000);
+                return false;
+            }
+            return true;
+        }
+
+        function drawMenu() {
+            ctx.beginPath();
+            ctx.font = "40px Arial";
+            ctx.fillStyle = "black";
+            ctx.textAlign = "center";
+            ctx.fillText("{{ displayMsg }}", canvas.width / 2, 100);
+            ctx.font = "20px Arial";
+            ctx.fillText("Top 5 Scores:", canvas.width / 2, 150);
+            if (!scores.length)
+                ctx.fillText("Nobody has played yet :(", canvas.width / 2, 180);
+            for (var i = 0; i < scores.length && i < 5; i++)
+                ctx.fillText(scores[i].textContent,
+                             canvas.width / 2, 180 + 40 * i);
+            var enterName = (playerName.length == 0) ? 
+                            "Your name: (Type anywhere to enter)" 
+                            : "Your name: " + playerName;
+            ctx.fillText(enterName, canvas.width / 2, 400);
+            ctx.closePath();
+
+            ctx.beginPath();
+            var boxW = 150, boxH = 60;
+            ctx.fillStyle = playerName.length == 0 ? "red" : "lightgreen";
+            ctx.fillRect(canvas.width / 2 - boxW / 2, canvas.height - 100, boxW, boxH);
+            ctx.font = "30px Arial";
+            ctx.fillStyle = "black";
+            ctx.fillText("PLAY", canvas.width / 2, canvas.height - 65);
+            ctx.closePath();
+        }
+
+        function drawGameOver() {
+            ctx.beginPath();
+            ctx.font = "40px Arial";
+            ctx.fillStyle = "black";
+            ctx.fillText("GAME OVER", canvas.width / 2, 100);
+            ctx.font = "30px Arial";
+            ctx.fillText("Your final score: " + paddle.score, canvas.width / 2, canvas.height / 2);
+            ctx.closePath();
+
+            var i;
+            for (i = 0; i < scores.length && i < 5; i++)
+                if (paddle.score > getScore(i))
+                    break;
+                
+            if (scores.length < 5 || i != 5) {
+                ctx.beginPath();
+                ctx.font = "40px Arial";
+                ctx.fillStyle = "black";
+                ctx.fillText("GAME OVER", canvas.width / 2, 100);
+                ctx.font = "30px Arial";
+                ctx.fillText("YOU MADE IT TO THE TOP 5!", canvas.width / 2, canvas.height / 2 - 100);
+                ctx.closePath();
+            }
+
+            ctx.beginPath();
+            var boxW = 340, boxH = 60;
+            ctx.fillStyle = "lightgreen";
+            ctx.fillRect(canvas.width / 2 - boxW / 2, canvas.height - 100, boxW, boxH);
+            ctx.font = "20px Arial";
+            ctx.fillStyle = "black";
+            ctx.fillText("SUBMIT SCORE AND PLAY AGAIN", canvas.width / 2, canvas.height - 65);
+            ctx.closePath();
+        }
+
+        function drawScore(paddle) {
+            ctx.beginPath();
+            ctx.font = "30px Arial";
+            ctx.fillStyle = "black";
+            ctx.fillText("Score: " + paddle.score, canvas.width / 2, 60);
+            ctx.closePath();
+        }
+
+        function drawBall(ball) {
+           ctx.beginPath();
+           ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+           ctx.fillStyle = "#FF0000";
+           ctx.fill();
+           ctx.closePath();
+         }
+         
+         function drawPong(pong) {
+           ctx.beginPath();
+           ctx.rect(pong.x, canvas.height - pong.h, pong.w, pong.h);
+           ctx.fillStyle = "#FFB900";
+           ctx.fill();
+           ctx.closePath();
+         }
+         
+        function drawBricks(bricks) {
+            for (var i = 0; i < bricks.size(); i++) {
+                var brick = bricks.get(i);
+                if (!brick.alive) {
+                    brick.delete();
+                    continue;
+                }
+                
+                ctx.beginPath();
+                ctx.rect(brick.x, brick.y, brick.w, brick.h);
+                ctx.fillStyle = brick.score > 10 ? "#FF00B6" : "#0FFF00";
+                ctx.fill();
+                ctx.closePath();
+
+                brick.delete();
+            }
+        }
+
+        // Monitor left and right keyboard inputs
+        var rightKey, leftKey;
+        var RIGHT_ARROW = 39, LEFT_ARROW = 37;
+        function keyDown(e) {
+            rightKey = e.keyCode == RIGHT_ARROW;
+            leftKey = e.keyCode == LEFT_ARROW;
+        }
+        function keyUp(e) {
+            rightKey = e.keyCode == RIGHT_ARROW ? false : rightKey;
+            leftKey = e.keyCode == LEFT_ARROW ? false : leftKey;
+        }
+        function switchGameState(e) {
+            var rect = canvas.getBoundingClientRect();
+            var mouseX = (e.clientX - rect.left) / 
+                         (rect.right - rect.left) * canvas.width;
+            var mouseY = (e.clientY - rect.top) / 
+                         (rect.bottom - rect.top) * canvas.height;
+
+            var boxW = gameState == 2 ? 340 : 150, boxH = 60;
+            var boxX = canvas.width / 2 - boxW / 2;
+            var boxY =  canvas.height - 100;
+            if (mouseX > boxX && mouseX < boxX + boxW &&
+                mouseY > boxY && mouseY < boxY + boxH) {
+                switch (gameState) {
+                    case 0:
+                        if (playerName.length != 0)
+                            gameState = 1;
+                        break;
+                    case 2:
+                        scoreForm.submit();
+                        break;
+                }
+            }
+        }
+
+        function getScore(index) {
+            return parseInt(scores[index].textContent.split(": ")[1]);
+        }
+
+        function getRndInteger(min, max) {
+            return Math.floor(Math.random() * (max - min + 1) ) + min;
+        }
+
+        function getPlayerName(e) {
+            if (gameState == 0) {
+                var letters = /^[0-9a-zA-Z]+$/;
+                if (playerName.length < 30) {
+                    if (String.fromCharCode(e.keyCode).match(letters)) {
+                        playerName += String.fromCharCode(e.keyCode);
+                    } else if (e.keyCode == 32) {
+                        playerName += " ";
+                    }
+                }
+                if (e.keyCode == 8) {
+                    playerName = playerName.slice(0, -1);
+                }
+            }
+        }
+
+        document.addEventListener("keydown", keyDown, false);
+        document.addEventListener("keyup", keyUp, false);
+        document.addEventListener("keyup", getPlayerName, false);
+        document.addEventListener('click', switchGameState, false);
+
+        // HTML 5 game canvas
+        var canvas = document.getElementById("gameCanvas");
+        // Canvas context
+        var ctx = canvas.getContext("2d");
+        // Game paddle with will be from Emscripten
+        var paddle;
+        // Game ball with will be from Emscripten
+        var ball;
+        // Game bricks from Emscripten
+        var bricks;
+        // Embind C++ object
+        var Module = {
+            canvas: canvas,
+            onRuntimeInitialized: function() {
+                paddle = new Module.Paddle(
+                             (canvas.width - 80) / 2, 
+                             canvas.height - 30,
+                             80, 15);
+
+                ball = new Module.Ball(
+                           canvas.width / 2 + getRndInteger(-200, 200), 
+                           canvas.height / 2 - 30,
+                           10, 
+                           getRndInteger(0, 1) === 1 ? 3 : -3,
+                           getRndInteger(0, 1) === 1 ? 3 : -3);
+                bricks = new Module.BrickLayout(3, 5, 75, 20, 20, 90, 60);
+            }
+        };
+
+        function waitForEmbind(){
+            if(typeof paddle === "undefined" || typeof ball === "undefined"
+                || document.getElementById("stuff") === "undefined") {
+                setTimeout(waitForEmbind, 1000);
+                return false;
+            }
+            return true;
+        }
+        
+        function draw() {
+            if (!waitForEmbind())
+                return;
+
+            scores = document.getElementById("printplayers")
+                     .getElementsByTagName("li");
+            scoreForm = document.getElementById("submitScore");
+            scoreForm.style.display = "none";
+
+            for (i = 0; i < scores.length; i++)
+                scores[i].style.display = "none";
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            switch (gameState) {
+                case 0:
+                    drawMenu();
+                    break;
+                case 1:
+                    // Render Emscripten game objects
+                    drawBricks(bricks);
+                    drawBall(ball);
+                    drawPong(paddle);
+                    drawScore(paddle);
+
+                    // Call Emscripten game logic methods 
+                    paddle.move(canvas, 7, leftKey, rightKey);
+                    
+                    // If ball collided went out of bounds, return false
+                    if (!bricks.collisionDetection(canvas, paddle, ball) || 
+                        !ball.move(paddle, canvas)) {
+                        scoreForm.elements.namedItem("score").value = paddle.score;
+                        scoreForm.elements.namedItem("player").value = playerName;
+                        gameState = 2;
+                    }
+                    break;
+                case 2:
+                    drawGameOver();
+                    break;
+            }
+        }
+         
+         setInterval(draw, 10);
+        
+      </script>
+
+    <div id="printplayers">
+        <div v-for="p in sortedPlayers">
+            {% verbatim %}
+            <li>{{ p.player }}: {{ p.score }}</li>
+            {% endverbatim %}
+        </div>
+        </ol>
+    </div> 
+    <form id="submitScore" action="/" method="POST">
+    {{ form }}
+    {% csrf_token %}
+    <input type="submit" class="button" value="Submit">
+    {{ endform }}
+    </form>
+</body>
+</html>
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="/static/js/vendor.js"></script>
+<script src="/static/js/myview.js"></script>
+<script src="/static/wasm/gamelogic.js"></script>
+

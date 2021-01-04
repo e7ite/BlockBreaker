@@ -1,7 +1,7 @@
 # BlockBreaker
 My final project for my CINS 465 Web Programming Fundamentals class. This is a remake of the classic Breakout game in HTML5 Canvas. THe purpose of this project was to explore modern web development frameworks and technologies. This is my first project that stores a database to keep track of player users.
 
-Technologies used:
+## Technologies used
 Django: Web development framework that allows easy management of project, and handles database of player names and scores.
       
 WebAssenbly: Used to write game logic, including ball physics, collision detection, brick movement, and score. The purpose of using WebAssembly here was strictly for learning purposes.

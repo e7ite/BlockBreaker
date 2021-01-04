@@ -18,5 +18,7 @@ Hosted on Google Cloud Platform
 
 ## Sources:
 Breakout game template: https://youtu.be/14Vx2lxuWlI 
+
 Emscripten game tutorial: https://blog.logrocket.com/first-game-in-webassembly/ 
+
 Emscripten API: https://emscripten.org/docs/api_reference/index.html

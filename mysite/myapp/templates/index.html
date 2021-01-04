@@ -1,3 +1,8 @@
+<!--
+    Sources:
+    Breakout game template: https://youtu.be/14Vx2lxuWlI 
+-->
+
 {% load static %}
 <!doctype html>
 <html class="no-js" lang="en">
@@ -31,14 +36,7 @@
         // Player name submitted to Django
         var playerName = "";
 
-        function waitForEmbind(){
-            if(typeof paddle === "undefined" || typeof ball === "undefined") {
-                setTimeout(waitForEmbind, 1000);
-                return false;
-            }
-            return true;
-        }
-
+        // Draws the menu to the canvas.
         function drawMenu() {
             ctx.beginPath();
             ctx.font = "40px Arial";
@@ -68,6 +66,7 @@
             ctx.closePath();
         }
 
+        // Draws the game over screen to the canvas
         function drawGameOver() {
             ctx.beginPath();
             ctx.font = "40px Arial";
@@ -102,6 +101,7 @@
             ctx.closePath();
         }
 
+        // Draws the current score
         function drawScore(paddle) {
             ctx.beginPath();
             ctx.font = "30px Arial";
@@ -110,6 +110,7 @@
             ctx.closePath();
         }
 
+        // Draws the ball object
         function drawBall(ball) {
            ctx.beginPath();
            ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
@@ -118,7 +119,8 @@
            ctx.closePath();
          }
          
-         function drawPong(pong) {
+        // Draws the pong object 
+        function drawPong(pong) {
            ctx.beginPath();
            ctx.rect(pong.x, canvas.height - pong.h, pong.w, pong.h);
            ctx.fillStyle = "#FFB900";
@@ -126,6 +128,7 @@
            ctx.closePath();
          }
          
+        // Draws all the bricks
         function drawBricks(bricks) {
             for (var i = 0; i < bricks.size(); i++) {
                 var brick = bricks.get(i);
@@ -147,14 +150,20 @@
         // Monitor left and right keyboard inputs
         var rightKey, leftKey;
         var RIGHT_ARROW = 39, LEFT_ARROW = 37;
+
+        // Sets if the current left/right arrow keys are pressed
         function keyDown(e) {
             rightKey = e.keyCode == RIGHT_ARROW;
             leftKey = e.keyCode == LEFT_ARROW;
         }
+
+        // Sets if the current left/right arrow keys are not pressed
         function keyUp(e) {
             rightKey = e.keyCode == RIGHT_ARROW ? false : rightKey;
             leftKey = e.keyCode == LEFT_ARROW ? false : leftKey;
         }
+
+        // Switches the game state
         function switchGameState(e) {
             var rect = canvas.getBoundingClientRect();
             var mouseX = (e.clientX - rect.left) / 
@@ -179,14 +188,17 @@
             }
         }
 
+        // Gets the score from Django and parses it into an integer
         function getScore(index) {
             return parseInt(scores[index].textContent.split(": ")[1]);
         }
 
+        // Gets a psuedorandom number between min and max inclusive
         function getRndInteger(min, max) {
-            return Math.floor(Math.random() * (max - min + 1) ) + min;
+            return Math.floor(Math.random() * (max - min + 1)) + min;
         }
 
+        // Makes sure player name contains only alphanumeric input
         function getPlayerName(e) {
             if (gameState == 0) {
                 var letters = /^[0-9a-zA-Z]+$/;
@@ -203,6 +215,7 @@
             }
         }
 
+        // Monitors for keys and mouse clicks
         document.addEventListener("keydown", keyDown, false);
         document.addEventListener("keyup", keyUp, false);
         document.addEventListener("keyup", getPlayerName, false);
@@ -237,27 +250,30 @@
             }
         };
 
+        // Checks if Embind is initialized
         function waitForEmbind(){
-            if(typeof paddle === "undefined" || typeof ball === "undefined"
-                || document.getElementById("stuff") === "undefined") {
+            if(typeof paddle === "undefined" || typeof ball === "undefined") {
                 setTimeout(waitForEmbind, 1000);
                 return false;
             }
             return true;
         }
         
+        // Runs the game in an infinite loop
         function draw() {
             if (!waitForEmbind())
                 return;
 
+            // Get the Vue.js HTML elements with the Django database information
+            // and hides them
             scores = document.getElementById("printplayers")
                      .getElementsByTagName("li");
             scoreForm = document.getElementById("submitScore");
             scoreForm.style.display = "none";
-
             for (i = 0; i < scores.length; i++)
                 scores[i].style.display = "none";
 
+            // Resets the screen buffer
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             switch (gameState) {
@@ -274,7 +290,8 @@
                     // Call Emscripten game logic methods 
                     paddle.move(canvas, 7, leftKey, rightKey);
                     
-                    // If ball collided went out of bounds, return false
+                    // If ball collided or went out of bounds, set the score HTML
+                    // DOM element values and switch game state
                     if (!bricks.collisionDetection(canvas, paddle, ball) || 
                         !ball.move(paddle, canvas)) {
                         scoreForm.elements.namedItem("score").value = paddle.score;

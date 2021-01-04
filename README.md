@@ -12,7 +12,7 @@ Technologies used:
 ## Preview
 ![Preview](/preview.gif)
 
- Sources:
- Breakout game template: https://youtu.be/14Vx2lxuWlI 
- Emscripten game tutorial: https://blog.logrocket.com/first-game-in-webassembly/
- Emscripten API: https://emscripten.org/docs/api_reference/index.html
+## Sources:
+Breakout game template: https://youtu.be/14Vx2lxuWlI 
+Emscripten game tutorial: https://blog.logrocket.com/first-game-in-webassembly/
+Emscripten API: https://emscripten.org/docs/api_reference/index.html

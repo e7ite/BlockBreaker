@@ -1,11 +1,6 @@
 # BlockBreaker
 My final project for my CINS 465 Web Programming Fundamentals class. This is a remake of the classic Breakout game in HTML5 Canvas. THe purpose of this project was to explore modern web development frameworks and technologies. This is my first project that stores a database to keep track of player users.
 
-## Play the game here!
-http://35.208.235.50/
-
-Hosted on Google Cloud Platform
-
 ## Technologies used
 Django: Web development framework that allows easy management of project, and handles database of player names and scores.
       
